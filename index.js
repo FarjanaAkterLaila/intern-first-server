@@ -41,6 +41,14 @@ const classesCollection = client.db("internbd").collection("class");
   
       res.send(result);
     })
+
+    // add class
+    app.post('/classes', async (req, res) => {
+      const newItem = req.body;
+      const result = await classesCollection.insertOne(newItem)
+      res.send(result);
+    })
+    
   } finally {
     // Ensures that the client will close when you finish/error
     //await client.close();
