@@ -56,8 +56,34 @@ const classesCollection = client.db("internbd").collection("class");
       const result = await classesCollection.deleteOne(query);
       res.send(result);
     })
+    // update class 
+    app.patch('/dashboard/update/:id', async (req, res) => {
+    
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const options = { upsert: true };
+      const updatedcls = req.body;
+
+      const cls = {
+        $set: {
+
+
+          Name: updatedcls.Name,
+
+          AvailableSeats: parseFloat(updatedcls.AvailableSeats),
+
+          Price: parseFloat(updatedcls.Price),
+
+          Image: updatedcls.Image,
+
+        }
+      }
+
+       const result = await classesCollection.updateOne(filter, cls, options);
+       res.send(result);
+     })
   } finally {
-    // Ensures that the client will close when you finish/error
+    
     //await client.close();
   }
 }
