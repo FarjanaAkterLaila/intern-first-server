@@ -48,7 +48,14 @@ const classesCollection = client.db("internbd").collection("class");
       const result = await classesCollection.insertOne(newItem)
       res.send(result);
     })
-    
+    // delete class
+    app.delete('/classes/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await classesCollection.deleteOne(query);
+      res.send(result);
+    })
   } finally {
     // Ensures that the client will close when you finish/error
     //await client.close();
