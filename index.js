@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion , ObjectId} = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zmwk4eu.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -24,7 +24,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    //await client.connect();
 
 const classesCollection = client.db("internbd").collection("class");
     // Send a ping to confirm a successful connection
@@ -50,9 +50,11 @@ const classesCollection = client.db("internbd").collection("class");
     })
     // delete class
     app.delete('/classes/:id', async (req, res) => {
+      //console.log(id);
       const id = req.params.id;
       console.log(id);
       const query = { _id: new ObjectId(id) };
+      console.log(id);
       const result = await classesCollection.deleteOne(query);
       res.send(result);
     })
@@ -84,6 +86,7 @@ const classesCollection = client.db("internbd").collection("class");
      })
   } finally {
     
+
     //await client.close();
   }
 }
