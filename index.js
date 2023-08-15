@@ -28,6 +28,7 @@ async function run() {
 
     const classesCollection = client.db("internbd").collection("class");
     const userCollection = client.db("internbd").collection("User");
+    const stuCollection = client.db("internbd").collection("student");
 
 
     // Send a ping to confirm a successful connection
@@ -49,6 +50,19 @@ async function run() {
       }
 
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    })
+     // add user
+    //  app.post('/users', async (req, res) => {
+    //   const newItem = req.body;
+    //   const result = await userCollection.insertOne(newItem)
+    //   res.send(result);
+    // })
+
+    // Add Student
+    app.post('/student', async (req, res) => {
+      const newItem = req.body;
+      const result = await stuCollection.insertOne(newItem)
       res.send(result);
     })
 // admin
