@@ -29,7 +29,7 @@ async function run() {
     const classesCollection = client.db("internbd").collection("class");
     const userCollection = client.db("internbd").collection("User");
     const stuCollection = client.db("internbd").collection("student");
-
+    const clabatchCollection = client.db("internbd").collection("BatchClass");
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
@@ -59,10 +59,27 @@ async function run() {
     //   res.send(result);
     // })
 
-    // Add Student
+    // Add Student 
+    app.get('/student', async (req, res) => {
+      const newItem = req.body;
+      const result = await stuCollection.find().toArray()
+      res.send(result);
+    })
     app.post('/student', async (req, res) => {
       const newItem = req.body;
       const result = await stuCollection.insertOne(newItem)
+      res.send(result);
+    })
+    app.get('/BatchClass', async (req, res) => {
+      const result = await clabatchCollection.find().toArray();
+      res.send(result);
+    });
+    // Add Batch and Class
+    app.post('/BatchClass', async (req, res) => {
+      const newItem = req.body;
+     
+      const result = await clabatchCollection.insertOne(newItem)
+      console.log( result);
       res.send(result);
     })
 // admin
