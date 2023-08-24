@@ -65,11 +65,82 @@ async function run() {
       const result = await stuCollection.find().toArray()
       res.send(result);
     })
+    
+    app.get('/student/:batch', async (req, res) => {
+
+      const selectedBatch = req.params.batch;
+  console.log(selectedBatch)
+      // let query = {};
+   
+      // if (selectedBatch) query.batch = selectedBatch;
+      const result = await stuCollection.find(selectedBatch).toArray()
+      res.send(result);
+    })
+    
+   
     app.post('/student', async (req, res) => {
       const newItem = req.body;
       const result = await stuCollection.insertOne(newItem)
       res.send(result);
     })
+    // Add Student Attendance
+app.get('/student', async (req, res) => {
+  const result = await stuCollection.find().toArray();
+  res.send(result);
+});
+// extra
+
+app.post('/attendance', async (req, res) => {
+  const { date, studentName, attendance } = req.body;
+
+  try {
+    const student = await stuCollection.findOne({ name: studentName });
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const result = await stuCollection.updateOne(
+      { _id: student._id },
+      {
+        $set: {
+          lastAttendanceDate: new Date(date),
+          attendance: attendance,
+        },
+        $push: {
+          attendance_history: { date: new Date(date), attendance: attendance },
+        },
+      }
+    );
+
+    res.json({ message: 'Attendance submitted successfully' });
+  } catch (error) {
+    console.error('Error submitting attendance:', error);
+    res.status(500).json({ message: 'Failed to submit attendance' });
+  }
+});
+/------------------/
+
+
+
+
+app.post('/student/:id', async (req, res) => {
+  const studentId = req.params.id;
+  console.log(studentId);
+  const { attendance ,date } = req.body;
+console.log(attendance , date)
+  const filter = { _id: new ObjectId(studentId) };
+  const updateDoc = {
+    $set: {
+      attendance: attendance,
+      lastAttendanceDate: new Date(date),
+    },
+  };
+
+  const result = await stuCollection.updateOne(filter, updateDoc);
+
+  res.send(result)
+});
+
     app.get('/BatchClass', async (req, res) => {
       const result = await clabatchCollection.find().toArray();
       res.send(result);
