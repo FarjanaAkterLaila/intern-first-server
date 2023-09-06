@@ -30,18 +30,21 @@ async function run() {
     const userCollection = client.db("internbd").collection("User");
     const stuCollection = client.db("internbd").collection("student");
     const clabatchCollection = client.db("internbd").collection("BatchClass");
+    const expressCollection = client.db("internbd").collection("Express");
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
-    // user colllecton
+    // user colllecton-------------------------------
     app.get('/user', async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
-    //Teacher Payment
-     app.get('/adminDashboard/pay/:id', async (req, res) => {
+    // -------------------------------------------------
+
+    //Teacher Payment------------------------------------
+    app.get('/adminDashboard/pay/:id', async (req, res) => {
       console.log(req.params.id);
       const id = req.params.id;
       console.log(id);
@@ -50,7 +53,8 @@ async function run() {
       res.send(result);
 
     });
- app.patch('/adminDashboard/pay/:id', async (req, res) => {
+
+    app.patch('/adminDashboard/pay/:id', async (req, res) => {
 
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
@@ -60,27 +64,22 @@ async function run() {
       paydate.setHours(0, 0, 0, 0); // Set time to midnight
       const cls = {
         $set: {
-
-
           name: updatedcls.name,
-
           totalamount: parseFloat(updatedcls.totalamount),
-
           totalClass: parseFloat(updatedcls.totalClass),
           payamount: parseFloat(updatedcls.payamount),
           totalduemonths: parseFloat(updatedcls.totalduemonths),
           dueamount: parseFloat(updatedcls.dueamount),
           paydate: paydate,
-
-         
-
         }
       }
-
       const result = await userCollection.updateOne(filter, cls, options);
       res.send(result);
     })
+    //-------------------------------------------
 
+
+    // user---------------------------
     app.post('/user', async (req, res) => {
       const user = req.body;
       const query = { email: user.email }
@@ -93,105 +92,124 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     })
-     // add user
-    //  app.post('/users', async (req, res) => {
-    //   const newItem = req.body;
-    //   const result = await userCollection.insertOne(newItem)
-    //   res.send(result);
-    // })
+    // ---------------------------------
+//Add Express--------------------------------
+app.get('/adminDashboard/express', async (req, res) => {
+  const newItem = req.body;
+  const result = await expressCollection.find().toArray()
+  res.send(result);
+})
+app.post('/adminDashboard/express', async (req, res) => {
+  const newItem = req.body;
+  const result = await expressCollection.insertOne(newItem)
+  res.send(result);
+});
 
-    // Add Student 
+app.get('/adminDashboard/instructors/paymentSum', async (req, res) => {
+  
+  const instructors = await userCollection.find({ role: 'Instructor' }).toArray();
+  const paymentSum = instructors.reduce((sum, instructor) => sum + (instructor.payamount || 0), 0);
+  
+  if (isNaN(paymentSum)) {
+      res.status(500).json({ error: 'Internal server error' });
+  } else {
+      res.json({ paymentSum });
+  }
+});
+// -----------------------------------------------------------
+    // Add Student -------------------------------------------
     app.get('/student', async (req, res) => {
       const newItem = req.body;
       const result = await stuCollection.find().toArray()
       res.send(result);
     })
-    
+
     app.get('/student/:batch', async (req, res) => {
 
       const selectedBatch = req.params.batch;
-  console.log(selectedBatch)
-      // let query = {};
-   
-      // if (selectedBatch) query.batch = selectedBatch;
+      console.log(selectedBatch)
+
       const result = await stuCollection.find(selectedBatch).toArray()
       res.send(result);
     })
-    
-   
+
+
     app.post('/student', async (req, res) => {
       const newItem = req.body;
       const result = await stuCollection.insertOne(newItem)
       res.send(result);
     })
+    //---------------------------------------------------
+
+
     // Add Student Attendance
 
-// extra
+    // extra
 
-app.post('/attendance', async (req, res) => {
-  const { date, studentName, attendance } = req.body;
+    app.post('/attendance', async (req, res) => {
+      const { date, studentName, attendance } = req.body;
 
-  try {
-    const student = await stuCollection.findOne({ name: studentName });
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+      try {
+        const student = await stuCollection.findOne({ name: studentName });
+        if (!student) {
+          return res.status(404).json({ message: 'Student not found' });
+        }
 
-    const result = await stuCollection.updateOne(
-      { _id: student._id },
-      {
-        $set: {
-          lastAttendanceDate: new Date(date),
-          attendance: attendance,
-        },
-        $push: {
-          attendance_history: { date: new Date(date), attendance: attendance },
-        },
+        const result = await stuCollection.updateOne(
+          { _id: student._id },
+          {
+            $set: {
+              lastAttendanceDate: new Date(date),
+              attendance: attendance,
+            },
+            $push: {
+              attendance_history: { date: new Date(date), attendance: attendance },
+            },
+          }
+        );
+
+        res.json({ message: 'Attendance submitted successfully' });
+      } catch (error) {
+        console.error('Error submitting attendance:', error);
+        res.status(500).json({ message: 'Failed to submit attendance' });
       }
-    );
+    });
+    //----------------------------------------------------------------------/
 
-    res.json({ message: 'Attendance submitted successfully' });
-  } catch (error) {
-    console.error('Error submitting attendance:', error);
-    res.status(500).json({ message: 'Failed to submit attendance' });
-  }
-});
-/------------------/
+    app.post('/student/:id', async (req, res) => {
+      const studentId = req.params.id;
+      console.log(studentId);
+      const { attendance, date } = req.body;
+      console.log(attendance, date)
+      const filter = { _id: new ObjectId(studentId) };
+      const updateDoc = {
+        $set: {
+          attendance: attendance,
+          lastAttendanceDate: new Date(date),
+        },
+      };
 
+      const result = await stuCollection.updateOne(filter, updateDoc);
 
-
-
-app.post('/student/:id', async (req, res) => {
-  const studentId = req.params.id;
-  console.log(studentId);
-  const { attendance ,date } = req.body;
-console.log(attendance , date)
-  const filter = { _id: new ObjectId(studentId) };
-  const updateDoc = {
-    $set: {
-      attendance: attendance,
-      lastAttendanceDate: new Date(date),
-    },
-  };
-
-  const result = await stuCollection.updateOne(filter, updateDoc);
-
-  res.send(result)
-});
+      res.send(result)
+    });
 
     app.get('/BatchClass', async (req, res) => {
       const result = await clabatchCollection.find().toArray();
       res.send(result);
     });
-    // Add Batch and Class
+
+    // Add Batch and Class---------------------------------------
     app.post('/BatchClass', async (req, res) => {
       const newItem = req.body;
-     
+
       const result = await clabatchCollection.insertOne(newItem)
-      console.log( result);
+      console.log(result);
       res.send(result);
     })
-// admin
+    // -----------------------------------------------------------
+
+    // admin------------------------------------------------------
     app.patch('/user/student/:id', async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -207,7 +225,7 @@ console.log(attendance , date)
 
     })
 
-    // instractor
+    // instractor----------------------------------------------
     app.patch('/user/instructor/:id', async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -222,7 +240,7 @@ console.log(attendance , date)
       res.send(result);
 
     })
-    // employee
+    // employee-------------------------------------------------
     app.patch('/user/employee/:id', async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -237,7 +255,9 @@ console.log(attendance , date)
       res.send(result);
 
     })
-    //classes
+    // ---------------------------------------------------------------
+
+    //classes----------------------------------------------------------
     app.get('/classes', async (req, res) => {
       const query = {};
 
@@ -246,14 +266,15 @@ console.log(attendance , date)
 
       res.send(result);
     })
-
-    // add class
+    //----------------------------------------------------
+    // add class---------------------------------------------------------
     app.post('/classes', async (req, res) => {
       const newItem = req.body;
       const result = await classesCollection.insertOne(newItem)
       res.send(result);
     })
-    // delete class
+
+    // delete class-------------------------------------------------------
     app.delete('/classes/:id', async (req, res) => {
       //console.log(id);
       const id = req.params.id;
@@ -263,7 +284,8 @@ console.log(attendance , date)
       const result = await classesCollection.deleteOne(query);
       res.send(result);
     })
-    // update class 
+
+    // update class ---------------------------------------------------------
     app.get('/adminDashboard/update/:id', async (req, res) => {
       console.log(req.params.id);
       const id = req.params.id;
@@ -273,6 +295,8 @@ console.log(attendance , date)
       res.send(result);
 
     });
+
+
     app.patch('/adminDashboard/update/:id', async (req, res) => {
 
       const id = req.params.id;
