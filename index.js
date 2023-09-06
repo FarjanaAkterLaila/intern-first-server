@@ -40,6 +40,47 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
+    //Teacher Payment
+     app.get('/adminDashboard/pay/:id', async (req, res) => {
+      console.log(req.params.id);
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) }
+      const result = await userCollection.findOne(query);
+      res.send(result);
+
+    });
+ app.patch('/adminDashboard/pay/:id', async (req, res) => {
+
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const options = { upsert: true };
+      const updatedcls = req.body;
+      const paydate = new Date(updatedcls.paydate);
+      paydate.setHours(0, 0, 0, 0); // Set time to midnight
+      const cls = {
+        $set: {
+
+
+          name: updatedcls.name,
+
+          totalamount: parseFloat(updatedcls.totalamount),
+
+          totalClass: parseFloat(updatedcls.totalClass),
+          payamount: parseFloat(updatedcls.payamount),
+          totalduemonths: parseFloat(updatedcls.totalduemonths),
+          dueamount: parseFloat(updatedcls.dueamount),
+          paydate: paydate,
+
+         
+
+        }
+      }
+
+      const result = await userCollection.updateOne(filter, cls, options);
+      res.send(result);
+    })
+
     app.post('/user', async (req, res) => {
       const user = req.body;
       const query = { email: user.email }
@@ -84,10 +125,7 @@ async function run() {
       res.send(result);
     })
     // Add Student Attendance
-app.get('/student', async (req, res) => {
-  const result = await stuCollection.find().toArray();
-  res.send(result);
-});
+
 // extra
 
 app.post('/attendance', async (req, res) => {
