@@ -61,6 +61,22 @@ app.get('/adminDashboard/notice', async (req, res) => {
   const result = await noticeCollection.find().toArray()
   res.send(result);
 })
+// search
+
+app.get("/search/:text", async (req, res) => {
+  const stext = req.params.text;
+  console.log(req.params.text)
+  const result = await stuCollection
+    .find({
+    
+    $or: [ {name: { $regex: stext, $options: "i" } }]
+       
+    
+    })
+    .toArray();
+    console.log(result);
+  res.send(result);
+});
 app.post('/adminDashboard/notice', async (req, res) => {
   const newItem = req.body;
   const result = await noticeCollection.insertOne(newItem)
@@ -170,6 +186,7 @@ app.post('/adminDashboard/notice', async (req, res) => {
     // -------------------------------------------------
 
     //Teacher Payment------------------------------------
+   
     app.get('/adminDashboard/pay/:id', async (req, res) => {
       console.log(req.params.id);
       const id = req.params.id;
@@ -193,6 +210,7 @@ app.post('/adminDashboard/notice', async (req, res) => {
           name: updatedcls.name,
           totalamount: parseFloat(updatedcls.totalamount),
           totalClass: parseFloat(updatedcls.totalClass),
+          peramount:parseFloat(updatedcls.peramount),
           payamount: parseFloat(updatedcls.payamount),
           totalduemonths: parseFloat(updatedcls.totalduemonths),
           dueamount: parseFloat(updatedcls.dueamount),
@@ -316,6 +334,17 @@ app.post('/adminDashboard/notice', async (req, res) => {
         res.json({ paymentSum });
       }
     });
+    app.get('/adminDashboard/instructors/dueamountSum', async (req, res) => {
+
+      const instructors = await userCollection.find({ role: 'Instructor' }).toArray();
+      const paymentSum = instructors.reduce((sum, instructor) => sum + (instructor.dueamount || 0), 0);
+
+      if (isNaN(paymentSum)) {
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ paymentSum });
+      }
+    });
 
     // -----------------------------------------
     // Home work upload 
@@ -373,8 +402,21 @@ app.post('/adminDashboard/notice', async (req, res) => {
       const result = await stuCollection.insertOne(newItem)
       res.send(result);
     })
+    // app.post('/student/:id', async (req, res) => {
+    //   const newItem = req.body;
+    //   const result = await stuCollection.insertOne(newItem)
+    //   res.send(result);
+    // })
 
+    app.get('/adminDashboard/attendance/:id', async (req, res) => {
+     // console.log(req.params.id);
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) }
+      const result = await stuCollection.findOne(query);
+      res.send(result);
 
+    });
     // Endpoint to add payment
     app.get('/adminDashboard/Stupay/:id', async (req, res) => {
       console.log(req.params.id);
@@ -416,55 +458,63 @@ app.post('/adminDashboard/notice', async (req, res) => {
 
 
     // Add Student Attendance
-
-    // extra
-
-    app.post('/attendance', async (req, res) => {
-      const { date, studentName, attendance } = req.body;
-
-      try {
-        const student = await stuCollection.findOne({ name: studentName });
-        if (!student) {
-          return res.status(404).json({ message: 'Student not found' });
-        }
-
-        const result = await stuCollection.updateOne(
-          { _id: student._id },
-          {
-            $set: {
-              lastAttendanceDate: new Date(date),
-              attendance: attendance,
-            },
-            $push: {
-              attendance_history: { date: new Date(date), attendance: attendance },
-            },
-          }
-        );
-
-        res.json({ message: 'Attendance submitted successfully' });
-      } catch (error) {
-        console.error('Error submitting attendance:', error);
-        res.status(500).json({ message: 'Failed to submit attendance' });
-      }
-    });
-    //----------------------------------------------------------------------/
-
-    app.post('/student/:id', async (req, res) => {
+    app.get('/teacher/:id', async (req, res) => {
+      // console.log(req.params.id);
+       const id = req.params.id;
+       console.log(id);
+       const query = { _id: new ObjectId(id) }
+       const result = await userCollection.findOne(query);
+       res.send(result);
+ 
+     });
+    app.post('/teacher/:id', async (req, res) => {
       const studentId = req.params.id;
       console.log(studentId);
+     const { attendance, date } = req.body;
+     console.log(attendance, date)
+     const filter = { _id: new ObjectId(studentId) };
+     // Format the date as "mm-dd-yyyy"
+     const formattedDate = new Date(date).toISOString().split('T')[0];
+     const updateDoc = {
+       $set: {
+         attendance: attendance,
+         lastAttendanceDate: formattedDate,
+       },
+       $push: {
+         attendance_history: { date: formattedDate, attendance: attendance }, // Store the formatted date
+       },
+     };
+
+     const result = await userCollection.updateOne(filter, updateDoc);
+
+     res.send(result)
+     
+   });
+
+   
+
+    app.post('/student/:id', async (req, res) => {
+       const studentId = req.params.id;
+       console.log(studentId);
       const { attendance, date } = req.body;
       console.log(attendance, date)
       const filter = { _id: new ObjectId(studentId) };
+      // Format the date as "mm-dd-yyyy"
+      const formattedDate = new Date(date).toISOString().split('T')[0];
       const updateDoc = {
         $set: {
           attendance: attendance,
-          lastAttendanceDate: new Date(date),
+          lastAttendanceDate: formattedDate,
+        },
+        $push: {
+          attendance_history: { date: formattedDate, attendance: attendance }, // Store the formatted date
         },
       };
 
       const result = await stuCollection.updateOne(filter, updateDoc);
 
       res.send(result)
+      
     });
 
     app.get('/BatchClass', async (req, res) => {
